@@ -68,7 +68,6 @@ API = "http://download.finance.yahoo.com/d/quotes.csv?s=" & ticker & "&f=nvd1kj"
                 .Refresh
     End With
             
-' 4. Format Cells
 Columns("C:K").ColumnWidth = 15
                
 End Sub
