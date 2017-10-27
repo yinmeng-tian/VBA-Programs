@@ -1,0 +1,76 @@
+Option Explicit
+
+Sub Yahoo_Finance()
+
+Dim API As String
+Dim info As String
+Dim cb As OLEObject
+Dim LastCol As Long
+Dim LastRow As Long
+Dim x As Range
+Dim i As Long
+Dim k As Integer
+Dim ticker As String
+
+
+' 1. Create new columns according to checkboxes
+
+For k = 4 To Cells(Rows.Count, 1).End(xlUp).Row
+    If Not IsEmpty(Cells(k, 1)) Then
+    ticker = ticker & "+" & Cells(k, 1)
+    End If
+Next k
+
+Debug.Print ticker
+
+LastCol = ActiveSheet.UsedRange.SpecialCells(xlCellTypeLastCell).Column
+
+If LastCol > 6 Then
+    Range("G5", Cells(1, LastCol)).EntireColumn.ClearContents
+End If
+
+i = 7
+For Each cb In ActiveSheet.OLEObjects
+    If TypeName(cb.Object) = "CheckBox" Then
+        If cb.Object = True Then
+          info = info & cb.Object.Caption
+          Cells(3, i).Value = cb.Object.Caption
+          i = i + 1
+        End If
+      End If
+  Next cb
+    
+' Convert from words to Yahoo symbols
+
+Dim info_words As String
+Dim info_tags As String
+Dim info_words2() As String
+Dim info_tags2() As String
+Dim n As Long
+
+info_words = ("Ask,Bid,Open,Previous Close")
+info_words2 = Split(info_words, ",")
+info_tags = ("a,b,o,p")
+info_tags2 = Split(info_tags, ",")
+
+For n = LBound(info_words2) To UBound(info_words2)
+    info = Replace(info, info_words2(n), info_tags2(n))
+Next n
+
+API = "http://download.finance.yahoo.com/d/quotes.csv?s=" & ticker & "&f=nvd1kj" & info
+
+' 3. Write data to the cells
+
+    With ActiveSheet.QueryTables.Add(Connection:="TEXT;" & API, Destination:=Range("B4"))
+                .RefreshStyle = xlOverwriteCells
+                .BackgroundQuery = False
+                .TextFileParseType = xlDelimited
+                .TextFileTextQualifier = xlTextQualifierDoubleQuote
+                .TextFileCommaDelimiter = True
+                .Refresh
+    End With
+            
+' 4. Format Cells
+Columns("C:K").ColumnWidth = 15
+               
+End Sub
