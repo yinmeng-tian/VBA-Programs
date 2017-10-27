@@ -21,8 +21,6 @@ For k = 4 To Cells(Rows.Count, 1).End(xlUp).Row
     End If
 Next k
 
-Debug.Print ticker
-
 LastCol = ActiveSheet.UsedRange.SpecialCells(xlCellTypeLastCell).Column
 
 If LastCol > 6 Then
