@@ -1,0 +1,21 @@
+# Highlights in yellow top 3 of each column
+
+Sub HighlightTop3()
+Dim r As Range
+Dim top As Top10
+
+LastCol = ActiveSheet.UsedRange.SpecialCells(xlCellTypeLastCell).Column
+
+For i = 5 To LastCol
+    Cells(4, i).Select
+    Set r = Range(ActiveCell, Cells(ActiveCell.End(xlDown).Row, ActiveCell.End(xlToRight).Column))
+    r.ClearFormats
+    Set top = r.FormatConditions.AddTop10
+    With top
+        .TopBottom = xlTop10Top
+        .Rank = 3
+        .Percent = False
+        .Interior.Color = vbYellow
+    End With
+    Next i
+End Sub
