@@ -1,0 +1,317 @@
+Sub Backtest()
+
+' Place codes directly inside the "ThisWorkbook" code space of any workbook
+' Run the macro and everything (incl. buttons & charts) should be there
+' Important: Place codes inside "ThisWorkbook", because Command Button actions are directed there
+' Click "Refresh" on the P&L worksheet to generate positions and profit/loss
+
+Application.DisplayAlerts = False
+
+' P&L
+
+For Each ws In Worksheets
+    If ws.Name = "P&L" Then GoTo Continue
+Next
+
+    ActiveWorkbook.Worksheets.Add
+    ActiveSheet.Name = "P&L"
+
+Continue:
+Dim Table_Names As Variant
+Table_Names = Array("Performance", "", "Ending Capital", "Net Profit", "", "# Wining Trades", _
+"# Losing Trades", "Winning Percentage", "", "", "Set Inputs", "", "Starting Capital", "Number of Shares", "", _
+"Stochastic Long Entry Level", "Stochastic Short Entry Level", "", "Open Long Trades Allowed", "Open Short Trades Allowed")
+
+Dim capital As Single
+Dim shares As Integer
+Dim pl As Worksheet
+Dim tr As Worksheet
+
+Set pl = Worksheets("P&L")
+
+With pl
+For i = 0 To UBound(Table_Names)
+    .Cells(i + 8, 2).Value = Table_Names(i)
+    If ActiveCell.Value = "Performance" Or ActiveCell.Value = "Set Inputs" Then
+        ActiveCell.Bold = True
+        ActiveCell.HorizontalAlignment = xlCenter
+    End If
+Next i
+    .Range("C20").Value = 10000
+    capital = Format(Range("C20").Value, "Currency")
+    .Range("C21").Value = 50
+    shares = Range("C21").Value
+    .Range("C23").Value = 20
+    .Range("C24").Value = 40
+    .Range("C26").Value = 1
+    .Range("C27").Value = 1
+    .Columns("B:B").ColumnWidth = 30
+    .Columns("C:C").ColumnWidth = 20
+End With
+
+Dim w2 As Range
+Dim btn2 As Button
+
+Set w2 = pl.Range("C29:C30")
+Set btn2 = pl.Buttons.Add(w2.Left, w2.Top, w2.Width, w2.Height)
+With btn2
+    .OnAction = "ThisWorkbook.refresh"
+    .Caption = "Refresh"
+    .Name = "btn2"
+End With
+
+' Trades
+
+For Each ws In Worksheets
+    If ws.Name = "Trades" Then GoTo Forward
+Next
+
+ActiveWorkbook.Worksheets.Add
+ActiveSheet.Name = "Trades"
+
+Forward:
+Set tr = Worksheets("Trades")
+Dim Col_Names As Variant
+Dim NumRow As Long
+Dim x As Integer
+
+x = tr.UsedRange.SpecialCells(xlCellTypeLastCell).Row
+
+Col_Names = Array("Date", "Open", "High", "Low", "Close", "Volume", "EMA", "14-Day High", "14-Day Low", "%K", "%D", "Trade Long", _
+"Position", "Close", "Trade Short", "Position", "Close", "Balance")
+
+With tr
+For i = 0 To UBound(Col_Names)
+    .Cells(2, i + 1).Value = Col_Names(i)
+Next i
+    .Cells(1, 2).Value = "Ticker:"
+    .Cells(1, 3).Value = "GOOG"
+    .Columns("A:S").HorizontalAlignment = xlCenter
+    .Range("A2:F2").Font.Bold = True
+    .Range("B1:C1").Style = "Neutral"
+    .Range("L:N").Style = "Good"
+    .Range("O:Q").Style = "Bad"
+    .Range("G:K").Style = "Note"
+    .Range("R:R").Style = "Note"
+    .Rows("3:3").Borders(xlEdgeBottom).LineStyle = xlContinuous
+    .Columns("A:S").ColumnWidth = 10
+    .Rows("1:1").RowHeight = 25
+End With
+
+Dim w1 As Range
+Dim btn1 As Button
+
+tr.Buttons.Delete
+
+Set w1 = tr.Range("D1:E1")
+Set btn1 = tr.Buttons.Add(w1.Left, w1.Top, w1.Width, w1.Height)
+With btn1
+    .OnAction = "ThisWorkBook.getquotes"
+    .Caption = "Get Quotes"
+    .Name = "btn1"
+End With
+
+' Set formulas
+
+API = "http://www.google.com/finance/historical?q=" & "GOOG" & "&startdate=Jan+01%2C+2009&enddate=Aug+2%2C+2012&output=csv"
+
+    With tr.QueryTables.Add(Connection:="TEXT;" & API, Destination:=Range("A3"))
+                .RefreshStyle = xlOverwriteCells
+                .BackgroundQuery = False
+                .TextFileParseType = xlDelimited
+                .TextFileTextQualifier = xlTextQualifierDoubleQuote
+                .TextFileCommaDelimiter = True
+                .refresh
+    End With
+
+tr.Range("A3:F3").Value = ""
+ActiveSheet.UsedRange.ColumnWidth = 10
+
+With tr
+    .Range("G24").FormulaR1C1 = "=AVERAGE(R[-20]C[-2]:RC[-2])"
+    .Range("G24").AutoFill Destination:=Range("G24:G254")
+    .Range("H18").FormulaR1C1 = "=MAX(R[-14]C[-5]:RC[-5])"
+    .Range("H18").AutoFill Destination:=Range("H18:H254")
+    .Range("I18").FormulaR1C1 = "=MIN(R[-14]C[-5]:RC[-5])"
+    .Range("I18").AutoFill Destination:=Range("I18:I254")
+    .Range("J18").FormulaR1C1 = "=(RC[-5]-RC[-1])/(RC[-2]-RC[-1])*100"
+    .Range("J18").AutoFill Destination:=Range("J18:J254")
+    .Range("K20").FormulaR1C1 = "=AVERAGE(R[-2]C[-1]:RC[-1])"
+    .Range("K20").AutoFill Destination:=Range("K20:K254")
+    .Range("L24").FormulaR1C1 = _
+        "=IF(AND(RC[-7]>RC[-5], RC[-2]>'P&L'!R23C3, COUNTIF(R4C12:R[-1]C, ""Long"")=COUNTIF(R4C14:R[-1]C[2], ""Close"")), ""Long"", """")"
+    .Range("L24").AutoFill Destination:=Range("L24:L254")
+    .Range("M24").FormulaR1C1 = "=IF(RC[-1]=""Long"", RC[-8]*'P&L'!R21C3,"""")"
+    .Range("M24").AutoFill Destination:=Range("M24:M254")
+    .Range("N24").FormulaR1C1 = _
+        "=IF(AND(RC[-4]>'P&L'!R24C3, COUNTIF(R4C12:R[-1]C[-2], ""Long"") > COUNTIF(R4C14:R[-1]C, ""Close"")), ""Close"", """")"
+    .Range("N24").AutoFill Destination:=Range("N24:N254")
+    .Range("O24").FormulaR1C1 = _
+        "=IF(AND(RC[-10]<RC[-8], RC[-5]<'P&L'!R24C3, R[-1]C[-5]>'P&L'!R24C3, COUNTIF(R4C15:R[-1]C, ""Short"")=COUNTIF(R4C17:R[-1]C[2], ""Close"")), ""Short"", """")"
+    .Range("O24").AutoFill Destination:=Range("O24:O254")
+    .Range("P24").FormulaR1C1 = _
+       "=IF(RC[-1]=""Short"", RC[-11]*'P&L'!R21C3, """")"
+    .Range("P24").AutoFill Destination:=Range("P24:P254")
+    .Range("Q24").FormulaR1C1 = _
+    "=IF(AND(RC[-7]>'P&L'!R23C3, COUNTIF(R4C15:R[-1]C[-2], ""Short"") > COUNTIF(R4C17:R[-1]C, ""Close"")), ""Close"", """")"
+    .Range("Q24").AutoFill Destination:=Range("Q24:Q254")
+End With
+
+' Set OHLC Chart
+
+Dim OHLCChart As ChartObject
+Set OHLCChart = pl.ChartObjects.Add(Left:=pl.Range("F3:F16").Left, Width:=350, Top:=pl.Range("H3:O3").Top, Height:=250)
+ 
+With OHLCChart.Chart
+    .SetSourceData Source:=tr.Range("A4:E254")
+    .ChartType = xlStockOHLC
+    .HasTitle = True
+    .ChartTitle.Text = "Candlestick Chart: " & tr.Cells(1, 3).Value
+    .HasLegend = False
+    .Axes(xlValue).MaximumScale = WorksheetFunction.Max(Range("E:E"))
+    .Axes(xlValue).MinimumScale = WorksheetFunction.Min(Range("E:E"))
+    .ChartGroups(1).UpBars.Interior.ColorIndex = 10
+    .ChartGroups(1).DownBars.Interior.ColorIndex = 3
+End With
+
+' Balance chart
+
+Dim Balance As ChartObject
+Set Balance = pl.ChartObjects.Add(Left:=pl.Range("N17:N30").Left, Width:=350, Top:=pl.Range("N14:S14").Top, Height:=250)
+
+With Balance.Chart
+    .SetSourceData Source:=tr.Range("R:R")
+    .ChartType = xlLine
+    .HasTitle = True
+    .ChartTitle.Text = "Capital Over Period"
+    .HasLegend = False
+    .HasAxis(xlCategory) = False
+End With
+
+Application.DisplayAlerts = True
+
+End Sub
+
+
+Sub getquotes()
+Dim API As String
+Dim ticker As String
+Dim nQuery As Name
+
+Application.DisplayAlerts = False
+
+ticker = Cells(1, 3).Value
+
+API = "http://www.google.com/finance/historical?q=" & ticker & "&startdate=Jan+01%2C+2009&enddate=Aug+2%2C+2012&output=csv"
+
+    With ActiveSheet.QueryTables.Add(Connection:="TEXT;" & API, Destination:=Range("A3"))
+                .RefreshStyle = xlOverwriteCells
+                .BackgroundQuery = False
+                .TextFileParseType = xlDelimited
+                .TextFileTextQualifier = xlTextQualifierDoubleQuote
+                .TextFileCommaDelimiter = True
+                .refresh
+    End With
+
+Range("A3:F3").Value = ""
+ActiveSheet.UsedRange.ColumnWidth = 10
+
+End Sub
+
+Sub refresh()
+
+Dim pl As Worksheet
+Dim tr As Worksheet
+
+Set pl = Worksheets("P&L")
+Set tr = Worksheets("Trades")
+
+Application.ScreenUpdating = False
+Application.Calculation = xlCalculationManual
+
+LastRow = pl.UsedRange.SpecialCells(xlCellTypeLastCell).Row
+LastCol = pl.UsedRange.SpecialCells(xlCellTypeLastCell).Column
+
+Dim capital As Single
+Dim shares As Integer
+
+For i = 1 To LastRow
+    For j = 1 To LastCol
+        If pl.Cells(i, j).Value = "Starting Capital" Then
+            capital = pl.Cells(i, j).Offset(0, 1).Value
+        ElseIf pl.Cells(i, j).Value = "Number of Shares" Then
+            shares = pl.Cells(i, j).Offset(0, 1).Value
+        End If
+    Next j
+Next i
+
+tr.Activate
+
+NumRow = tr.UsedRange.SpecialCells(xlCellTypeLastCell).Row
+
+Dim longpos As Variant
+Dim shortpos As Variant
+Dim longclose As Variant
+Dim shortclose As Variant
+
+For i = 24 To NumRow
+If Cells(i, 12).Value = "Long" Then
+capital = capital - Cells(i, 12).Offset(0, -7).Value * shares
+longpos = longpos & "," & Cells(i, 12).Offset(0, -7).Value * shares
+
+ElseIf Cells(i, 14).Value = "Close" Then
+capital = capital + Cells(i, 14).Offset(0, -9).Value * shares
+longclose = longclose & "," & Cells(i, 14).Offset(0, -9).Value * shares
+
+ElseIf Cells(i, 15).Value = "Short" Then
+capital = capital + Cells(i, 15).Offset(0, -10).Value * shares
+shortpos = shortpos & "," & Cells(i, 15).Offset(0, -10).Value * shares
+
+ElseIf Cells(i, 17).Value = "Close" Then
+capital = capital - Cells(i, 17).Offset(0, -12).Value * shares
+shortclose = shortclose & "," & Cells(i, 17).Offset(0, -12).Value * shares
+End If
+tr.Cells(i, 18).Value = capital
+Next i
+
+Dim longposArray() As String
+Dim longcloseArray() As String
+Dim shortposArray() As String
+Dim shortcloseArray() As String
+longposArray = Split(longpos, ",")
+longcloseArray = Split(longclose, ",")
+shortposArray = Split(shortpos, ",")
+shortcloseArray = Split(shortclose, ",")
+
+Dim winner As Integer
+Dim lose As Integer
+
+For i = LBound(longcloseArray) To UBound(longcloseArray)
+    If longcloseArray(i) > longposArray(i) Then
+        winner = winner + 1
+    Else: lose = lose + 1
+    End If
+Next i
+
+For k = LBound(shortcloseArray) To UBound(shortcloseArray)
+    If shortcloseArray(k) < shortposArray(k) Then
+        winner = winner + 1
+    Else: lose = lose + 1
+    End If
+Next k
+
+pl.Cells(10, 3).Value = Format(tr.Cells(NumRow, 18), "Currency")
+pl.Cells(11, 3).Value = Format(pl.Cells(10, 3).Value - pl.Cells(20, 3).Value, "Currency")
+pl.Cells(13, 3).Value = winner
+pl.Cells(14, 3).Value = lose
+pl.Cells(15, 3).Value = Format(winner / (winner + lose), "percent")
+
+Application.ScreenUpdating = True
+Application.Calculation = xlCalculationAutomatic
+
+End Sub
+
+
+
+
+
