@@ -19,3 +19,9 @@ For i = 5 To LastCol
     End With
     Next i
 End Sub
+
+
+*************************************************************
+
+You can also use Application.WorksheetFunction.Large(Range, c)
+c = 1 for largest, 2 for 2nd largest, etc
