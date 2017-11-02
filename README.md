@@ -7,7 +7,7 @@ Sample codes for Excel VBA!
 
 Highlights: 
 - Macros packaged to build entire workbook, including charts, buttons and formatting.
-- Live stream stock data with any ticker
+- Live stream historical (1 year) stock data with any ticker
 - Allows for parameter controls: changes in starting capital, shares per transaction, position entry and exit points. 
 
 # Personal Assistant
