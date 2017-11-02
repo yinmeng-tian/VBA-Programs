@@ -1,1 +1,125 @@
+' Virtual Assistant:
+' Each macro lives in a separate userform
 
+' Stream weather
+
+Private Sub CommandButton1_Click()
+Dim xmlhttp As New MSXML2.xmlhttp
+Dim myurl As String
+Dim xmlresponse As New DOMDocument
+Dim location As String
+
+Application.ScreenUpdating = False
+
+Worksheets("Weather").Activate
+
+location = checkweather.TextBox1.Text
+Range("H6").Value = location
+
+Unload Me
+
+myurl = "http://api.openweathermap.org/data/2.5/forecast/daily/?q=" & location & "&mode=xml&units=imperial&cnt=5&apikey=4a2360d14bf33378079d2e2d49e35ddb"
+xmlhttp.Open "GET", myurl, False
+xmlhttp.send
+xmlresponse.LoadXML (xmlhttp.responseText)
+
+For i = 0 To 4
+Cells(10, i + 6).Value = xmlresponse.SelectNodes("//weatherdata/forecast/time/@day")(i).Text
+Cells(11, i + 6).Value = xmlresponse.SelectNodes("//weatherdata/forecast/time/symbol/@name")(i).Text
+Cells(12, i + 6).Value = xmlresponse.SelectNodes("//weatherdata/forecast/time/temperature/@day")(i).Text & Chr(176) & "F"
+Next i
+
+For i = 6 To 10
+If InStr(Cells(11, i), "cloud") > 0 Then
+    Cells(9, i).Value = "cloud"
+ElseIf InStr(Cells(11, i), "clear") > 0 Then
+    Cells(9, i).Value = "clear"
+ElseIf InStr(Cells(11, i), "rain") > 0 Then
+    Cells(9, i).Value = "rain"
+ElseIf InStr(Cells(11, i), "breeze") > 0 Then
+    Cells(9, i).Value = "breeze"
+ElseIf InStr(Cells(11, i), "snow") > 0 Then
+    Cells(9, i).Value = "snow"
+Else: Cells(9, i).Value = "other"
+End If
+Next i
+
+Rows("9:9").EntireRow.Hidden = True
+Range("F9:J12").HorizontalAlignment = xlCenter
+
+Application.ScreenUpdating = True
+
+Dim forecast As String
+forecast = Range("G11").Value
+Application.speech.Speak ("It looks like it will be" & forecast & "tomorrow.")
+
+End Sub
+
+' Set reminder
+
+Private Sub CommandButton1_Click()
+
+Dim H As String
+Dim M As String
+Dim S As String
+Dim no As Variant
+
+H = setreminder.TextBox1.Text
+M = setreminder.TextBox2.Text
+S = setreminder.TextBox3.Text
+
+If H = "" Then H = "00"
+If M = "" Then M = "00"
+If S = "" Then S = "00"
+
+no = Array("-", ".", "\", ",")
+
+For Each i In no
+    H = Replace(H, i, "")
+    M = Replace(M, i, "")
+    S = Replace(S, i, "")
+Next i
+
+Application.OnTime Now + TimeValue(H & ":" & M & ":" & S), "ThisWorkBook.Remindme"
+
+Dim reminder As String
+
+reminder = setreminder.TextBox4.Text
+setreminder.Hide
+End Sub
+
+Sub Remindme()
+
+reminder = setreminder.TextBox4.Text
+Unload setreminder
+Application.speech.Speak ("This is your reminder:" & reminder)
+MsgBox reminder, vbOKOnly + vbInformation, "Reminder"
+
+End Sub
+
+' Guess a number
+
+Private Sub gogame_Click()
+Application.speech.Speak ("I thought of a number.")
+Unload Me
+Dim x As Variant
+Dim ans As Integer
+ans = Application.WorksheetFunction.RandBetween(0, 500)
+
+Do While x <> ans
+x = InputBox("Enter your best guess:", "")
+If x = "" Then
+Exit Sub
+ElseIf Not IsNumeric(x) Then
+Application.speech.Speak ("It must be a number.")
+ElseIf x > ans Then
+Application.speech.Speak ("Try smaller.")
+ElseIf x < ans Then
+Application.speech.Speak ("Try bigger.")
+ElseIf x = ans Then
+Application.speech.Speak ("You win!")
+Unload Me
+uf.Show
+End If
+Loop
+End Sub
