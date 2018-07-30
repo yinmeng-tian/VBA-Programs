@@ -1,5 +1,6 @@
 '''Yin: do not edit. For functional lookup button.
 '''Work in progress. Do not edit.
+''' Make sure ComboBox2 property > autocomplete is OFF
 
 Public dept_list As Collection
 
