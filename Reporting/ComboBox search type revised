@@ -1,0 +1,123 @@
+'''Yin: do not edit. For functional lookup button.
+'''Work in progress. Do not edit.
+
+Public dept_list As Collection
+
+Private Sub CommandButton1_Click()
+Dim func_group As String
+Dim dept As String
+Dim lookup As Worksheet
+Dim calculator As Worksheet
+Dim target_col As String
+Dim level As Integer
+Dim found
+
+Set lookup = ThisWorkbook.Worksheets("Functional Lookup")
+Set calculator = ThisWorkbook.Worksheets("Comp Calculator")
+
+dept = ComboBox2.Value
+level = ComboBox1.Value
+
+Select Case ComboBox1.Value
+                    Case 1
+                        target_col = "C"
+                    Case 2
+                        target_col = "G"
+                    Case 3
+                        target_col = "K"
+                    Case 4
+                        target_col = "O"
+                    Case 5
+                        target_col = "S"
+                    Case 6
+                        target_col = "W"
+                End Select
+
+found = lookup.Range(target_col & ":" & target_col).Find(dept, LookIn:=xlValues, lookat:=xlWhole).Address
+func_group = lookup.Range(found).Offset(0, -1).Value
+
+MsgBox "The functional group for level " & level & " " & dept & " is:  " & vbLf & func_group & "."
+
+End Sub
+
+Public Sub FilterComboBox2(strFilter As String)
+Dim n
+
+Application.ScreenUpdating = False
+
+Debug.Print ComboBox2.ListCount
+
+If Len(ComboBox2.Value) < 100 Then
+    If Not ComboBox2.ListIndex = 1 Then
+        Debug.Print ComboBox2.ListIndex
+        For n = ComboBox2.ListCount - 1 To 0 Step -1
+            Debug.Print n
+            ComboBox2.RemoveItem n
+        Next n
+    End If
+End If
+
+For Each choice In dept_list
+    If InStr(1, LCase(choice), LCase(strFilter)) <> 0 Then
+        If LCase(ComboBox2.Value) <> LCase(choice) Then
+            ComboBox2.AddItem choice
+        End If
+    End If
+Next
+
+Application.ScreenUpdating = True
+
+End Sub
+
+Private Sub Userform_Initialize()
+
+ComboBox1.List = Array(1, 2, 3, 4, 5, 6)
+
+End Sub
+
+Public Sub ComboBox1_Change()
+            Dim mapping As Worksheet
+            Dim calc As Worksheet
+            Dim level As Integer
+            Dim lastrow As Integer
+            Dim col As String
+            Dim department
+            Dim dict
+
+            Set mapping = ThisWorkbook.Worksheets("Functional Lookup")
+            Set calc = ThisWorkbook.Worksheets("Comp Calculator")
+            Set dept_list = New Collection
+
+            Application.EnableEvents = True
+
+                Select Case ComboBox1.Value
+                    Case 1
+                        col = "C"
+                    Case 2
+                        col = "G"
+                    Case 3
+                        col = "K"
+                    Case 4
+                        col = "O"
+                    Case 5
+                        col = "S"
+                    Case 6
+                        col = "W"
+                End Select
+            
+                ComboBox2.Clear
+
+                For i = 2 To mapping.Range(col & "1000").End(xlUp).Row
+                    department = mapping.Cells(i, col).Value
+                    dept_list.Add (department)
+                Next
+                
+                FilterComboBox2 ""
+                
+End Sub
+
+
+Private Sub ComboBox2_Change()
+FilterComboBox2 ComboBox2.Value
+End Sub
+
