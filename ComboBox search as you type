@@ -1,0 +1,156 @@
+'''Yin: do not edit. For functional lookup button.
+'''Work in progress. Do not edit.
+
+Public dept_list As Collection
+
+Private Sub CommandButton1_Click()
+Dim func_group As String
+Dim dept As String
+Dim lookup As Worksheet
+Dim calculator As Worksheet
+Dim target_col As String
+Dim level As Integer
+Dim found
+
+Set lookup = ThisWorkbook.Worksheets("Functional Lookup")
+Set calculator = ThisWorkbook.Worksheets("Comp Calculator")
+
+dept = ComboBox2.Value
+level = ComboBox1.Value
+'target_col = calculator.Range("B100").Value
+
+Select Case ComboBox1.Value
+                    Case 1
+                        target_col = "C"
+                    Case 2
+                        target_col = "G"
+                    Case 3
+                        target_col = "K"
+                    Case 4
+                        target_col = "O"
+                    Case 5
+                        target_col = "S"
+                    Case 6
+                        target_col = "W"
+                End Select
+
+'Debug.Print dept
+
+found = lookup.Range(target_col & ":" & target_col).Find(dept, LookIn:=xlValues, lookat:=xlWhole).Address
+func_group = lookup.Range(found).Offset(0, -1).Value
+'Debug.Print "func group:" & func_group
+
+MsgBox "The functional group for level " & level & " " & dept & " is:  " & func_group & "."
+
+End Sub
+
+Public Sub FilterComboBox2(strFilter As String)
+Dim n
+Dim c As Integer
+
+Application.ScreenUpdating = False
+
+Debug.Print ComboBox2.ListCount
+'
+'Do While ComboBox2.ListCount > 1
+'    On Error GoTo 0
+'    For n = ComboBox2.ListCount - 1 To 0 Step -1
+'        Debug.Print n
+'        ComboBox2.RemoveItem n
+'    Next n
+'Loop
+
+'If ComboBox2.ListCount > 0 Then
+'    ComboBox2.RemoveItem (0)
+'End If
+
+If Not ComboBox2.ListIndex = 1 Then
+    Debug.Print ComboBox2.ListIndex
+    ' ComboBox2.RemoveItem ComboBox2.ListIndex
+    For n = ComboBox2.ListCount - 1 To 0 Step -1
+        Debug.Print n
+        ComboBox2.RemoveItem n
+    Next n
+End If
+
+c = 0
+
+For Each choice In dept_list
+    'Debug.Print "dept: " & choice
+    If InStr(1, LCase(choice), LCase(strFilter)) <> 0 Then
+        'Debug.Print "Choice: " & choice
+        If ComboBox2.Value <> choice Then
+            ComboBox2.AddItem choice
+            c = c + 1
+        End If
+    End If
+    'ComboBox2.Text = ComboBox2.Value
+Next
+
+ComboBox2.ListRows = Round(c / 8, 0)
+
+Application.ScreenUpdating = True
+
+End Sub
+
+Private Sub Userform_Initialize()
+
+ComboBox1.List = Array(1, 2, 3, 4, 5, 6)
+' ComboBox2.Value = "Type before clicking dropdown button."
+
+End Sub
+
+Public Sub ComboBox1_Change()
+            Dim mapping As Worksheet
+            Dim calc As Worksheet
+            Dim level As Integer
+            Dim lastrow As Integer
+            Dim col As String
+            Dim department
+            Dim dict
+
+            Set mapping = ThisWorkbook.Worksheets("Functional Lookup")
+            Set calc = ThisWorkbook.Worksheets("Comp Calculator")
+            Set dept_list = New Collection
+
+            Application.EnableEvents = True
+
+                Select Case ComboBox1.Value
+                    Case 1
+                        col = "C"
+                    Case 2
+                        col = "G"
+                    Case 3
+                        col = "K"
+                    Case 4
+                        col = "O"
+                    Case 5
+                        col = "S"
+                    Case 6
+                        col = "W"
+                End Select
+                'Debug.Print col
+                'calc.Range("B100") = col
+                'Debug.Print "Col is" & col
+                ComboBox2.Clear
+
+                For i = 2 To mapping.Range(col & "1000").End(xlUp).Row
+                    department = mapping.Cells(i, col).Value
+                    'Debug.Print department
+                    dept_list.Add (department)
+                Next
+                
+                'Debug.Print dept_list.Item(1)
+                
+                FilterComboBox2 ""
+                
+End Sub
+
+
+Private Sub ComboBox2_Change()
+FilterComboBox2 ComboBox2.Value
+'ActiveSheet.Select
+'Me.ComboBox2.SetFocus
+'Me.ComboBox2.DropDown
+End Sub
+
